@@ -58,67 +58,6 @@ class Orchestrator:
         logger.info(f"Saved run metadata to {metadata_path}")
 
 
-    def run(self):
-        """Execute the full pipeline."""
-        logger.info(f"Starting AutoDocLM Orchestrator for repo: {self.repo_name}")
-        self._setup_directories()
-
-        # Step 1: Repo Ingestion
-        logger.info("=== STEP 1: Repo Ingestion ===")
-        raw_repo_path = ingest_repo(self.config, self.metadata, self.project_dir)
-        logger.info(f"Repo available at: {raw_repo_path}")
-
-        # Save metadata after step 1 so it includes commit hash
-        self._save_metadata()
-
-        logger.info("Pipeline Step 0 and 1 completed successfully.")
-        
-        # Step 2: File Filtering
-        logger.info("=== STEP 2: File Filtering ===")
-        manifest_path = filter_files(self.config, raw_repo_path, self.project_dir)
-        logger.info(f"File manifest created at: {manifest_path}")
-        
-        # Step 3: File Classification
-        logger.info("=== STEP 3: File Classification ===")
-        classified_path = classify_files(self.config, manifest_path, self.project_dir)
-        logger.info(f"Classified files mapped at: {classified_path}")
-        
-        logger.info("Pipeline Step 2 and 3 completed successfully.")
-
-        # Step 4: Chunking
-        logger.info("=== STEP 4: Chunking ===")
-        chunks_path = chunk_repo(self.config, self.project_dir)
-        logger.info(f"Chunks written to: {chunks_path}")
-
-        # Step 5: Static Analysis
-        logger.info("=== STEP 5: Static Analysis ===")
-        self.run_static_analysis(raw_repo_path, classified_path, chunks_path)
-
-        # Step 6: Embedding + Vector Index (Optional)
-        if self.config.use_embeddings:
-            logger.info("=== STEP 6: Embedding + Vector Index ===")
-            from src.indexing.vector_store_chroma import run_indexing
-            embeddings_dir = self.project_dir / "embeddings"
-            chunk_metadata_path = run_indexing(
-                chunks_path=chunks_path,
-                classified_files_path=classified_path,
-                embeddings_dir=embeddings_dir,
-                ollama_model=self.config.embedding_model,
-                batch_size=self.config.embedding_batch_size,
-                include_tests=self.config.include_tests,
-            )
-            if chunk_metadata_path:
-                logger.info(f"Step 6 complete. Metadata: {chunk_metadata_path}")
-            else:
-                logger.warning(
-                    "Step 6: Indexing returned None (Ollama unreachable). "
-                    "Continuing without embeddings."
-                )
-        else:
-            logger.info("Step 6: Embeddings skipped (pass --use-embeddings to enable).")
-
-        logger.info("Pipeline Steps 0–6 completed successfully.")
-        
     def _verify_step_7(self) -> tuple[bool, list[str]]:
         """
         Simplified check: Just verify the final repo architecture summary.
