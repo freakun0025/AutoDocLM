@@ -33,7 +33,7 @@ Unlike simple "summarize this file" tools, AutoDocLM measures **Structural Impor
 ---
 
 ### 🧪 System Architecture (Topology)
-The system operates as a 14-stage deterministic data pipeline. The extraction and parsing (CPU-based) are strictly separated from semantic synthesis (API-based inference).
+The system operates as a 10-step deterministic data pipeline. The extraction and parsing (CPU-based) are strictly separated from semantic synthesis (API-based inference).
 
 ```mermaid
 graph TD
